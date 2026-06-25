@@ -916,5 +916,5 @@ For more information, visit the project documentation or contact the development
 ---
 
 *Digital Supervision Platform v1.0.0*  
-*Lagos State University - Department of Computer Science*  
-*2024*
+*Lagos State University - Department of Computer Science*  Adedokun Jesupelumi Zachariah
+*2026*
