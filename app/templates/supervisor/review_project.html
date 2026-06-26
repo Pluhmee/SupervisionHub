@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% block title %}Review: {{ project.project_title }}{% endblock %}
+{% block page_title %}Project Review{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">{{ project.project_title }}</h4>
+    <span class="badge text-capitalize
+      {% if project.status.value == 'active'     %}bg-success
+      {% elif project.status.value == 'completed' %}bg-primary
+      {% else %}bg-secondary{% endif %}">
+      {{ project.status.value }}
+    </span>
+    <span class="ms-2 text-muted small">
+      <i class="bi bi-person me-1"></i>
+      Student: <strong>{{ project.student.full_name }}</strong>
+      ({{ project.student.matric_no or 'N/A' }})
+    </span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('supervisor.progress_report', project_id=project.project_id) }}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-file-earmark-bar-graph me-1"></i>Report
+    </a>
+    <a href="{{ url_for('supervisor.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
+  </div>
+</div>
+
+<!-- Progress -->
+<div class="card stat-card p-3 mb-4">
+  <div class="d-flex justify-content-between small fw-semibold mb-2">
+    <span>Overall Progress</span><span>{{ project.overall_progress }}%</span>
+  </div>
+  <div class="progress mb-2" style="height:14px">
+    <div class="progress-bar bg-primary" style="width:{{ project.overall_progress }}%"></div>
+  </div>
+  <!-- Chapter pip indicators -->
+  <div class="d-flex gap-2 mt-1">
+    {% set chapters = milestones | selectattr('is_chapter', 'equalto', true) | list | sort(attribute='chapter_order') %}
+    {% for ch in chapters %}
+      <span class="badge
+        {% if ch.status.value == 'approved'  %}bg-success
+        {% elif ch.status.value == 'rejected' %}bg-danger
+        {% elif ch.status.value == 'submitted' %}bg-info text-dark
+        {% else %}bg-light text-muted border{% endif %}"
+        style="font-size:.75rem">
+        Ch{{ ch.chapter_order }}
+      </span>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4">
+  <li class="nav-item">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-chapters">
+      Chapters
+      {% set submitted_count = milestones | selectattr('is_chapter', 'equalto', true) | selectattr('status.value','equalto','submitted') | list | length %}
+      {% if submitted_count > 0 %}
+        <span class="badge bg-danger ms-1">{{ submitted_count }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documents">Documents</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-meetings">
+      Meetings
+      {% set pending_meet = meetings | selectattr('status.value','equalto','requested') | list | length %}
+      {% if pending_meet > 0 %}
+        <span class="badge bg-warning text-dark ms-1">{{ pending_meet }}</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- ── CHAPTERS TAB ──────────────────────────────────────────── -->
+  <div class="tab-pane fade show active" id="tab-chapters">
+
+    {% for ch in milestones | selectattr('is_chapter', 'equalto', true) | list | sort(attribute='chapter_order') %}
+      {% set submitted = ch.status.value == 'submitted' %}
+      {% set approved  = ch.status.value == 'approved' %}
+      {% set rejected  = ch.status.value == 'rejected' %}
+      {% set pending   = ch.status.value == 'pending' %}
+
+      <!-- Find the document submitted for this chapter -->
+      {% set ch_docs = documents | selectattr('milestone_type','equalto', ch.milestone_name) | list %}
+
+      <div class="card mb-3 border-0 shadow-sm"
+           style="border-left:4px solid
+             {% if approved  %}#198754
+             {% elif rejected %}#dc3545
+             {% elif submitted %}#0dcaf0
+             {% else %}#dee2e6{% endif %}!important">
+
+        <div class="card-body py-3">
+          <div class="d-flex justify-content-between align-items-start">
+
+            <!-- Left: chapter info -->
+            <div class="d-flex gap-3">
+              <div class="d-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0"
+                   style="width:42px;height:42px;font-size:.95rem;
+                     background:{% if approved %}#198754{% elif rejected %}#dc3545{% elif submitted %}#0dcaf0{% else %}#e9ecef{% endif %};
+                     color:{% if pending %}#6c757d{% else %}white{% endif %}">
+                {% if approved %}
+                  <i class="bi bi-check-lg"></i>
+                {% else %}
+                  {{ ch.chapter_order }}
+                {% endif %}
+              </div>
+              <div>
+                <div class="fw-semibold">{{ ch.milestone_name }}</div>
+                <div class="text-muted small">{{ ch.milestone_description }}</div>
+
+                {% if ch.submitted_date %}
+                  <div class="text-muted small mt-1">
+                    <i class="bi bi-clock me-1"></i>
+                    Submitted: {{ ch.submitted_date.strftime('%d %b %Y, %H:%M') }}
+                  </div>
+                {% endif %}
+
+                <!-- Show student note if present -->
+                {% if ch.feedback and ch.feedback.startswith('[Student note]') %}
+                  <div class="alert alert-light border py-2 small mt-2 mb-0">
+                    <i class="bi bi-chat-left me-1 text-muted"></i>
+                    {{ ch.feedback }}
+                  </div>
+                {% endif %}
+
+                <!-- Submitted document for this chapter -->
+                {% if ch_docs %}
+                  <div class="mt-2">
+                    {% for doc in ch_docs %}
+                      <a href="{{ url_for('student.download_document', document_id=doc.document_id) }}"
+                         class="btn btn-sm btn-outline-primary me-1">
+                        <i class="bi bi-file-earmark-arrow-down me-1"></i>
+                        {{ doc.document_name }} (v{{ doc.version_number }})
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% elif submitted %}
+                  <div class="text-muted small mt-1">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    Document uploaded separately — check Documents tab.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Right: status + action -->
+            <div class="d-flex flex-column align-items-end gap-2 ms-3">
+              <span class="badge text-capitalize
+                {% if approved  %}bg-success
+                {% elif rejected %}bg-danger
+                {% elif submitted %}bg-info text-dark
+                {% else %}bg-light text-dark border{% endif %}">
+                {{ ch.status.value }}
+              </span>
+
+              {% if submitted %}
+                <button class="btn btn-sm btn-success"
+                        data-bs-toggle="modal"
+                        data-bs-target="#approveModal{{ ch.milestone_id }}">
+                  <i class="bi bi-check-lg me-1"></i>Approve
+                </button>
+                <button class="btn btn-sm btn-danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#rejectModal{{ ch.milestone_id }}">
+                  <i class="bi bi-x-lg me-1"></i>Reject
+                </button>
+              {% elif approved %}
+                {% if ch.feedback and not ch.feedback.startswith('[Student note]') %}
+                  <div class="small text-success">
+                    <i class="bi bi-chat-left-text me-1"></i>{{ ch.feedback }}
+                  </div>
+                {% endif %}
+              {% elif rejected %}
+                {% if ch.feedback %}
+                  <div class="small text-danger" style="max-width:200px">
+                    <i class="bi bi-chat-left-text me-1"></i>{{ ch.feedback }}
+                  </div>
+                {% endif %}
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Approve Modal -->
+      {% if submitted %}
+      <div class="modal fade" id="approveModal{{ ch.milestone_id }}" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title fw-bold">
+                Approve — {{ ch.milestone_name }}
+              </h6>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST"
+                  action="{{ url_for('supervisor.approve_milestone', milestone_id=ch.milestone_id) }}">
+              <div class="modal-body">
+                <label class="form-label fw-semibold">Feedback for student (optional)</label>
+                <textarea class="form-control" name="feedback" rows="3"
+                          placeholder="Well done! Suggestions for Chapter {{ ch.chapter_order + 1 }}…"></textarea>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success btn-sm">
+                  <i class="bi bi-check-lg me-1"></i>Confirm Approval
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reject Modal -->
+      <div class="modal fade" id="rejectModal{{ ch.milestone_id }}" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title fw-bold text-danger">
+                Reject — {{ ch.milestone_name }}
+              </h6>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST"
+                  action="{{ url_for('supervisor.reject_milestone', milestone_id=ch.milestone_id) }}">
+              <div class="modal-body">
+                <label class="form-label fw-semibold">
+                  Feedback <span class="text-danger">*</span>
+                  <span class="text-muted fw-normal">(required — student will see this)</span>
+                </label>
+                <textarea class="form-control" name="feedback" rows="3"
+                          placeholder="Please revise the introduction section and…"
+                          required></textarea>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="bi bi-x-lg me-1"></i>Confirm Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    {% endfor %}
+  </div>
+
+  <!-- ── DOCUMENTS TAB ────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-documents">
+    {% if documents %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Document</th><th>Type</th><th>Version</th>
+              <th>Chapter</th><th>Uploaded By</th><th>Date</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for d in documents %}
+            <tr>
+              <td><i class="bi bi-file-earmark me-1 text-primary"></i>{{ d.document_name }}</td>
+              <td><span class="badge bg-secondary">{{ d.document_type.upper() }}</span></td>
+              <td>v{{ d.version_number }}</td>
+              <td class="small">{{ d.milestone_type or '—' }}</td>
+              <td>{{ d.uploader.full_name }}</td>
+              <td class="small text-muted">
+                {{ d.upload_date.strftime('%d %b %Y') if d.upload_date else '—' }}
+              </td>
+              <td>
+                <a href="{{ url_for('student.download_document', document_id=d.document_id) }}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-download me-1"></i>Download
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">No documents uploaded yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- ── MEETINGS TAB ─────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-meetings">
+    {% if meetings %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr><th>Date</th><th>Time</th><th>Location</th><th>Agenda</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+          {% for mt in meetings %}
+            <tr>
+              <td>{{ mt.meeting_date.strftime('%d %b %Y') }}</td>
+              <td>{{ mt.meeting_time.strftime('%H:%M') }}</td>
+              <td>{{ mt.location or '—' }}</td>
+              <td class="small">{{ mt.agenda or '—' }}</td>
+              <td>
+                <span class="badge text-capitalize
+                  {% if mt.status.value == 'confirmed'  %}bg-success
+                  {% elif mt.status.value == 'completed' %}bg-primary
+                  {% elif mt.status.value == 'cancelled' %}bg-danger
+                  {% else %}bg-secondary{% endif %}">
+                  {{ mt.status.value }}
+                </span>
+              </td>
+              <td>
+                {% if mt.status.value == 'requested' %}
+                  <form method="POST"
+                        action="{{ url_for('supervisor.confirm_meeting', meeting_id=mt.meeting_id) }}"
+                        class="d-inline">
+                    <button class="btn btn-success btn-sm">Confirm</button>
+                  </form>
+                  <form method="POST"
+                        action="{{ url_for('supervisor.cancel_meeting', meeting_id=mt.meeting_id) }}"
+                        class="d-inline ms-1">
+                    <button class="btn btn-danger btn-sm">Cancel</button>
+                  </form>
+                {% elif mt.status.value == 'confirmed' %}
+                  <button class="btn btn-primary btn-sm"
+                          data-bs-toggle="modal"
+                          data-bs-target="#completeModal{{ mt.meeting_id }}">
+                    Complete
+                  </button>
+                  <div class="modal fade" id="completeModal{{ mt.meeting_id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h6 class="modal-title fw-bold">Complete Meeting</h6>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="POST"
+                              action="{{ url_for('supervisor.complete_meeting', meeting_id=mt.meeting_id) }}">
+                          <div class="modal-body">
+                            <label class="form-label small fw-semibold">Meeting Notes (optional)</label>
+                            <textarea class="form-control" name="notes" rows="3"></textarea>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                    data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Save & Complete</button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">No meeting requests for this project.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

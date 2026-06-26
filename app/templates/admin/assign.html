@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Assign Supervisors{% endblock %}
+{% block page_title %}Supervisor Assignment{% endblock %}
+
+{% block content %}
+
+{% if projects %}
+<div class="card stat-card p-4 mb-4">
+  <h5 class="fw-bold mb-1">Assign Supervisor</h5>
+  <p class="text-muted small mb-3">
+    <span class="badge bg-danger me-1">{{ projects | length }}</span>
+    project(s) awaiting supervisor assignment.
+  </p>
+  <form method="POST" action="{{ url_for('admin.assign_submit') }}">
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Project <span class="text-danger">*</span></label>
+        <select class="form-select" name="project_id" required>
+          <option value="">-- Select project --</option>
+          {% for p in projects %}
+            <option value="{{ p.project_id }}">
+              {{ p.project_title }} — {{ p.student.full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Supervisor <span class="text-danger">*</span></label>
+        <select class="form-select" name="supervisor_id" required>
+          <option value="">-- Select supervisor --</option>
+          {% for sv in supervisors %}
+            <option value="{{ sv.user_id }}">
+              {{ sv.full_name }} — {{ sv.department }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Assign</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+  <i class="bi bi-check-circle-fill"></i>
+  All projects have been assigned a supervisor.
+</div>
+{% endif %}
+
+{# Re-assign section for already-assigned projects #}
+{% if supervisors %}
+{% set assigned = [] %}
+{% for p in all_projects %}{% if p.supervisor_id %}{% set _ = assigned.append(p) %}{% endif %}{% endfor %}
+{% if assigned %}
+<div class="card stat-card p-4 mb-4">
+  <h5 class="fw-bold mb-1">Re-assign Supervisor</h5>
+  <p class="text-muted small mb-3">Change the supervisor on an already-assigned project.</p>
+  <form method="POST" action="{{ url_for('admin.assign_submit') }}">
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Project</label>
+        <select class="form-select" name="project_id" required>
+          <option value="">-- Select project --</option>
+          {% for p in assigned %}
+            <option value="{{ p.project_id }}">
+              {{ p.project_title }} — {{ p.student.full_name }}
+              ({{ p.supervisor.full_name }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">New Supervisor</label>
+        <select class="form-select" name="supervisor_id" required>
+          <option value="">-- Select supervisor --</option>
+          {% for sv in supervisors %}
+            <option value="{{ sv.user_id }}">{{ sv.full_name }} — {{ sv.department }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-outline-primary w-100">Re-assign</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endif %}
+
+<h5 class="fw-bold mb-3">All Projects</h5>
+<div class="card stat-card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Project</th>
+          <th>Student</th>
+          <th>Supervisor</th>
+          <th>Status</th>
+          <th>Progress</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in all_projects %}
+        <tr>
+          <td class="fw-semibold small">{{ p.project_title }}</td>
+          <td class="small">{{ p.student.full_name }}</td>
+          <td class="small">
+            {% if p.supervisor %}
+              <i class="bi bi-person-check text-success me-1"></i>{{ p.supervisor.full_name }}
+            {% else %}
+              <span class="text-danger fw-semibold">
+                <i class="bi bi-exclamation-circle me-1"></i>Unassigned
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge text-capitalize
+              {% if p.status.value == 'active'     %}bg-success
+              {% elif p.status.value == 'completed' %}bg-primary
+              {% else %}bg-secondary{% endif %}">
+              {{ p.status.value }}
+            </span>
+          </td>
+          <td style="min-width:120px">
+            <div class="d-flex justify-content-between small mb-1">
+              <span></span><span>{{ p.overall_progress }}%</span>
+            </div>
+            <div class="progress" style="height:6px">
+              <div class="progress-bar bg-primary"
+                   style="width:{{ p.overall_progress }}%"></div>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      {% if not all_projects %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">No projects created yet.</td>
+        </tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

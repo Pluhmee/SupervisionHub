@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Welcome, {{ current_user.first_name }}!</h4>
+    <p class="text-muted small mb-0">{{ current_user.department }} &mdash; {{ current_user.faculty }}</p>
+  </div>
+  <a href="{{ url_for('student.create_project') }}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> New Project
+  </a>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-md-3">
+    <div class="card stat-card text-center p-3">
+      <div class="display-6 fw-bold text-primary">{{ projects | length }}</div>
+      <div class="text-muted small">Total Projects</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-3">
+    <div class="card stat-card text-center p-3">
+      <div class="display-6 fw-bold text-success">
+        {{ projects | selectattr('status.value', 'equalto', 'active') | list | length }}
+      </div>
+      <div class="text-muted small">Active</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-3">
+    <div class="card stat-card text-center p-3">
+      <div class="display-6 fw-bold text-info">{{ unread_messages_count }}</div>
+      <div class="text-muted small">Unread Messages</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-3">
+    <div class="card stat-card text-center p-3">
+      <div class="display-6 fw-bold text-warning">{{ notifications | length }}</div>
+      <div class="text-muted small">New Notifications</div>
+    </div>
+  </div>
+</div>
+
+<!-- Projects -->
+<h5 class="fw-bold mb-3">My Projects</h5>
+{% if projects %}
+  <div class="row g-3">
+    {% for project in projects %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card stat-card h-100 p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="fw-bold mb-0">{{ project.project_title }}</h6>
+          <span class="badge
+            {% if project.status.value == 'active' %}bg-success
+            {% elif project.status.value == 'completed' %}bg-primary
+            {% else %}bg-secondary{% endif %}
+            text-capitalize">{{ project.status.value }}</span>
+        </div>
+        <p class="text-muted small mb-2">
+          {% if project.supervisor %}
+            <i class="bi bi-person-check me-1"></i>{{ project.supervisor.full_name }}
+          {% else %}
+            <span class="text-warning"><i class="bi bi-exclamation-circle me-1"></i>Awaiting supervisor</span>
+          {% endif %}
+        </p>
+        <!-- Progress bar -->
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Progress</span><span>{{ project.overall_progress }}%</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar bg-primary" style="width:{{ project.overall_progress }}%"></div>
+          </div>
+        </div>
+        <a href="{{ url_for('student.view_project', project_id=project.project_id) }}"
+           class="btn btn-sm btn-outline-primary mt-2">
+          <i class="bi bi-arrow-right-circle me-1"></i>View Project
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    You have no projects yet.
+    <a href="{{ url_for('student.create_project') }}" class="alert-link">Create your first project.</a>
+  </div>
+{% endif %}
+{% endblock %}

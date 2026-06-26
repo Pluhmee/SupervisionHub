@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Create User{% endblock %}
+{% block page_title %}Create User{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card stat-card p-4">
+      <h5 class="fw-bold mb-4"><i class="bi bi-person-plus me-2 text-primary"></i>Create New User</h5>
+      <form method="POST" action="{{ url_for('admin.create_user') }}" novalidate>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="first_name"
+                   value="{{ form_data.get('first_name','') }}" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="last_name"
+                   value="{{ form_data.get('last_name','') }}" required />
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" name="email"
+                   value="{{ form_data.get('email','') }}" required />
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+            <select class="form-select" name="user_type" id="userTypeSelect" required>
+              <option value="">-- Select role --</option>
+              <option value="student"    {% if form_data.get('user_type')=='student'    %}selected{% endif %}>Student</option>
+              <option value="supervisor" {% if form_data.get('user_type')=='supervisor' %}selected{% endif %}>Supervisor</option>
+              <option value="admin"      {% if form_data.get('user_type')=='admin'      %}selected{% endif %}>Admin</option>
+            </select>
+          </div>
+          <div class="col-md-6" id="matricRow" style="display:none">
+            <label class="form-label fw-semibold">Matriculation Number</label>
+            <input type="text" class="form-control" name="matric_no"
+                   value="{{ form_data.get('matric_no','') }}" />
+          </div>
+          <div class="col-md-6" id="staffRow" style="display:none">
+            <label class="form-label fw-semibold">Staff ID</label>
+            <input type="text" class="form-control" name="staff_id"
+                   value="{{ form_data.get('staff_id','') }}" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="department"
+                   value="{{ form_data.get('department','') }}" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Faculty <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="faculty"
+                   value="{{ form_data.get('faculty','') }}" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Phone</label>
+            <input type="tel" class="form-control" name="phone"
+                   value="{{ form_data.get('phone','') }}" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+            <input type="password" class="form-control" name="password" required minlength="8" />
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Create User</button>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  const sel = document.getElementById('userTypeSelect');
+  function toggleFields() {
+    document.getElementById('matricRow').style.display = sel.value === 'student'    ? '' : 'none';
+    document.getElementById('staffRow').style.display  = sel.value === 'supervisor' ? '' : 'none';
+  }
+  sel.addEventListener('change', toggleFields);
+  toggleFields();
+</script>
+{% endblock %}

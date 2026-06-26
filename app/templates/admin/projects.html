@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}All Projects{% endblock %}
+{% block page_title %}All Projects{% endblock %}
+
+{% block content %}
+<h5 class="fw-bold mb-4">All Projects</h5>
+<div class="card stat-card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>Title</th><th>Student</th><th>Supervisor</th>
+          <th>Progress</th><th>Status</th><th>Milestones</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in projects %}
+        <tr>
+          <td>{{ p.project_id }}</td>
+          <td>
+            <div class="fw-semibold">{{ p.project_title }}</div>
+            <div class="text-muted small">{{ p.category or '' }}</div>
+          </td>
+          <td>{{ p.student.full_name }}</td>
+          <td>
+            {% if p.supervisor %}
+              {{ p.supervisor.full_name }}
+            {% else %}
+              <span class="text-warning small"><i class="bi bi-exclamation-circle me-1"></i>Unassigned</span>
+            {% endif %}
+          </td>
+          <td style="min-width:120px">
+            <div class="d-flex justify-content-between small mb-1">
+              <span></span><span>{{ p.overall_progress }}%</span>
+            </div>
+            <div class="progress" style="height:8px">
+              <div class="progress-bar bg-primary" style="width:{{ p.overall_progress }}%"></div>
+            </div>
+          </td>
+          <td>
+            <span class="badge text-capitalize
+              {% if p.status.value == 'active'     %}bg-success
+              {% elif p.status.value == 'completed' %}bg-primary
+              {% else %}bg-secondary{% endif %}">
+              {{ p.status.value }}
+            </span>
+          </td>
+          <td class="small text-muted">{{ p.milestones.count() }}</td>
+          <td>
+            <a href="{{ url_for('admin.add_milestone', project_id=p.project_id) }}"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-plus-lg"></i> Milestone
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+      {% if not projects %}
+        <tr><td colspan="8" class="text-center text-muted py-3">No projects yet.</td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

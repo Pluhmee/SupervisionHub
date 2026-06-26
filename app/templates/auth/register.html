@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block public_content %}
+<div class="row justify-content-center my-4">
+  <div class="col-lg-6 col-md-9">
+    <div class="card shadow-sm border-0 p-4">
+
+      <div class="text-center mb-4">
+        <img src="{{ url_for('static', filename='lasu_logo.png') }}"
+             alt="LASU Logo" style="width:72px;height:72px;object-fit:contain" />
+        <h4 class="fw-bold mt-3" class="text-dark">Create Account</h4>
+        <p class="text-muted small">Lagos State University — SupervisionHub</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('auth.register') }}" novalidate id="registerForm">
+        <div class="row g-3">
+
+          <!-- ── Personal ──────────────────────────────────── -->
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="first_name"
+                   value="{{ form_data.get('first_name','') }}" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="last_name"
+                   value="{{ form_data.get('last_name','') }}" required />
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" name="email"
+                   value="{{ form_data.get('email','') }}" required />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Phone (optional)</label>
+            <input type="tel" class="form-control" name="phone"
+                   value="{{ form_data.get('phone','') }}" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+            <select class="form-select" name="user_type" id="userTypeSelect" required>
+              <option value="">-- Select role --</option>
+              <option value="student"
+                {% if form_data.get('user_type')=='student' %}selected{% endif %}>
+                Student
+              </option>
+              <option value="supervisor"
+                {% if form_data.get('user_type')=='supervisor' %}selected{% endif %}>
+                Supervisor
+              </option>
+            </select>
+          </div>
+
+          <!-- ── Faculty → Department (cascading) ────────── -->
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Faculty <span class="text-danger">*</span></label>
+            <select class="form-select" name="faculty_id" id="facultySelect" required>
+              <option value="">-- Select faculty --</option>
+              {% for f in faculties %}
+                <option value="{{ f.faculty_id }}"
+                  data-code="{{ f.faculty_code }}"
+                  {% if form_data.get('faculty_id')|string == f.faculty_id|string %}selected{% endif %}>
+                  {{ f.faculty_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+            <select class="form-select" name="department_id" id="departmentSelect" required disabled>
+              <option value="">-- Select faculty first --</option>
+            </select>
+            <div id="deptSpinner" class="text-muted small mt-1 d-none">
+              <span class="spinner-border spinner-border-sm me-1"></span> Loading departments…
+            </div>
+          </div>
+
+          <!-- ── Matric (student only) ──────────────────── -->
+          <div class="col-12" id="matricRow" style="display:none">
+            <label class="form-label fw-semibold">
+              Matriculation Number <span class="text-danger">*</span>
+              <span class="text-muted fw-normal small ms-1">(9 digits — YYFFDDNNN)</span>
+            </label>
+            <input type="text" class="form-control font-monospace" name="matric_no"
+                   id="matricInput" maxlength="9" pattern="\d{9}"
+                   placeholder="e.g. 220104020"
+                   value="{{ form_data.get('matric_no','') }}" />
+
+            <!-- Live feedback box -->
+            <div id="matricFeedback" class="mt-2 p-2 rounded small d-none"></div>
+          </div>
+
+          <!-- ── Staff ID (supervisor only) ────────────── -->
+          <div class="col-12" id="staffRow" style="display:none">
+            <label class="form-label fw-semibold">
+              Staff ID <span class="text-danger">*</span>
+            </label>
+            <input type="text" class="form-control" name="staff_id"
+                   placeholder="e.g. LASU/SS/0042"
+                   value="{{ form_data.get('staff_id','') }}" />
+          </div>
+
+          <!-- ── Password ───────────────────────────────── -->
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="password"
+                     id="passwordInput" minlength="8" required />
+              <button class="btn btn-outline-secondary" type="button" id="togglePw">
+                <i class="bi bi-eye" id="pwIcon"></i>
+              </button>
+            </div>
+            <!-- Strength meter -->
+            <div class="progress mt-2" style="height:5px">
+              <div class="progress-bar" id="strengthBar" style="width:0%"></div>
+            </div>
+            <div class="small mt-1" id="strengthLabel"></div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="confirm_password"
+                     id="confirmPwInput" required />
+              <button class="btn btn-outline-secondary" type="button" id="toggleCpw">
+                <i class="bi bi-eye" id="cpwIcon"></i>
+              </button>
+            </div>
+            <div class="small mt-1 text-danger d-none" id="pwMatchMsg">Passwords do not match.</div>
+          </div>
+
+          <!-- ── Submit ─────────────────────────────────── -->
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+              <i class="bi bi-person-check me-1"></i>Create Account
+            </button>
+          </div>
+
+        </div><!-- /row -->
+      </form>
+
+      <p class="text-center text-muted small mt-3 mb-0">
+        Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 1. INJECT TEMPLATE VALUES
+  const savedDeptId   = "{{ form_data.get('department_id', '') }}";
+  const savedFaculty  = "{{ form_data.get('faculty_id', '') }}";
+
+  // 2. CACHE ALL FORM ELEMENTS SECURELY
+  const roleSelect     = document.getElementById('userTypeSelect');
+  const matricRow      = document.getElementById('matricRow');
+  const staffRow       = document.getElementById('staffRow');
+  const facultySelect  = document.getElementById('facultySelect');
+  const deptSelect     = document.getElementById('departmentSelect');
+  const deptSpinner    = document.getElementById('deptSpinner');
+  const matricInput    = document.getElementById('matricInput');
+  const matricFeedback = document.getElementById('matricFeedback');
+  const pwInput        = document.getElementById('passwordInput');
+  const confirmPw      = document.getElementById('confirmPwInput');
+  const pwMatchMsg     = document.getElementById('pwMatchMsg');
+
+  // 3. INTERNAL VALIDATION & VISIBILITY FUNCTIONS
+  function resetMatricFeedback() {
+    if (!matricFeedback) return;
+    matricFeedback.className = 'mt-2 p-2 rounded small d-none';
+    matricFeedback.innerHTML = '';
+  }
+
+  function validateMatricLive() {
+    // If the input element or role selection is missing/not a student, abort validation
+    if (!matricInput || !roleSelect || roleSelect.value !== 'student') return;
+
+    const val = matricInput.value.trim();
+    const fopt = facultySelect ? facultySelect.selectedOptions[0] : null;
+    const dopt = deptSelect ? deptSelect.selectedOptions[0] : null;
+
+    if (val.length < 9) { 
+      resetMatricFeedback(); 
+      return; 
+    }
+
+    if (!/^\d{9}$/.test(val)) {
+      showMatricFeedback('danger', '✗ Must be exactly 9 digits — no letters or spaces.');
+      return;
+    }
+
+    const yr     = val.slice(0,2);
+    const fCode  = val.slice(2,4);
+    const dCode  = val.slice(4,6);
+    const serial = val.slice(6,9);
+
+    const fExpected = fopt && fopt.dataset.code ? fopt.dataset.code.padStart(2,'0') : null;
+    const dExpected = dopt && dopt.dataset.code ? dopt.dataset.code.padStart(2,'0') : null;
+
+    let lines  = [];
+    let status = 'success';
+
+    lines.push(`📅 Admission year: <strong>20${yr}</strong>`);
+
+    if (fExpected) {
+      if (fCode === fExpected) {
+        lines.push(`✓ Faculty code <strong>${fCode}</strong> matches ${fopt.text}`);
+      } else {
+        lines.push(`✗ Faculty code <strong>${fCode}</strong> — expected <strong>${fExpected}</strong> for ${fopt.text}`);
+        status = 'danger';
+      }
+    } else {
+      lines.push(`ℹ Faculty code: <strong>${fCode}</strong> (select faculty to verify)`);
+      status = 'warning';
+    }
+
+    if (dExpected) {
+      if (dCode === dExpected) {
+        lines.push(`✓ Department code <strong>${dCode}</strong> matches ${dopt.text}`);
+      } else {
+        lines.push(`✗ Department code <strong>${dCode}</strong> — expected <strong>${dExpected}</strong> for ${dopt.text}`);
+        status = 'danger';
+      }
+    } else {
+      lines.push(`ℹ Department code: <strong>${dCode}</strong> (select department to verify)`);
+      if (status !== 'danger') status = 'warning';
+    }
+
+    if (serial === '000') {
+      lines.push(`✗ Serial number cannot be 000.`);
+      status = 'danger';
+    } else {
+      lines.push(`ℹ Serial: <strong>${serial}</strong>`);
+    }
+
+    showMatricFeedback(status, lines.join('<br>'));
+  }
+
+  function showMatricFeedback(type, html) {
+    if (!matricFeedback) return;
+    const colours = { success: 'alert-success', danger: 'alert-danger', warning: 'alert-warning' };
+    matricFeedback.className = `mt-2 p-2 rounded small alert ${colours[type] || 'alert-secondary'}`;
+    matricFeedback.innerHTML = html;
+  }
+
+  function toggleRoleFields() {
+    if (!roleSelect) return;
+    const role = roleSelect.value;
+    if (matricRow) matricRow.style.display = role === 'student' ? '' : 'none';
+    if (staffRow) staffRow.style.display  = role === 'supervisor' ? '' : 'none';
+    resetMatricFeedback();
+  }
+
+  function toggleVisibility(inputId, iconId) {
+    const inp  = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!inp || !icon) return;
+    if (inp.type === 'password') {
+      inp.type   = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      inp.type   = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  }
+
+  // 4. ATTACH THE EVENT LISTENERS
+  if (roleSelect) {
+    roleSelect.addEventListener('change', toggleRoleFields);
+    toggleRoleFields(); // Run instantly on load to determine visible view
+  }
+
+  if (facultySelect && deptSelect) {
+    facultySelect.addEventListener('change', function () {
+      const fid = this.value;
+      deptSelect.innerHTML = '<option value="">-- Select department --</option>';
+      deptSelect.disabled  = true;
+      resetMatricFeedback();
+      if (!fid) return;
+
+      if (deptSpinner) deptSpinner.classList.remove('d-none');
+
+      fetch(`/api/faculties/${fid}/departments`)
+        .then(r => r.json())
+        .then(data => {
+          if (deptSpinner) deptSpinner.classList.add('d-none');
+          if (data.length === 0) {
+            deptSelect.innerHTML = '<option value="">No departments found</option>';
+            return;
+          }
+          data.forEach(d => {
+            const opt  = document.createElement('option');
+            opt.value  = d.id;
+            opt.text   = d.name;
+            opt.dataset.code = d.code;
+            if (savedDeptId && d.id == savedDeptId) opt.selected = true;
+            deptSelect.appendChild(opt);
+          });
+          deptSelect.disabled = false;
+          validateMatricLive();
+        })
+        .catch(() => {
+          if (deptSpinner) deptSpinner.classList.add('d-none');
+          deptSelect.innerHTML = '<option value="">Error loading departments</option>';
+        });
+    });
+  }
+
+  // Watch typing actions
+  if (matricInput) matricInput.addEventListener('input', validateMatricLive);
+  if (deptSelect) deptSelect.addEventListener('change', validateMatricLive);
+
+  // Watch password utilities
+  const togglePwBtn = document.getElementById('togglePw');
+  const toggleCpwBtn = document.getElementById('toggleCpw');
+  if (togglePwBtn) togglePwBtn.addEventListener('click', () => toggleVisibility('passwordInput', 'pwIcon'));
+  if (toggleCpwBtn) toggleCpwBtn.addEventListener('click', () => toggleVisibility('confirmPwInput', 'cpwIcon'));
+
+  // Run password bar updates
+  if (pwInput) {
+    pwInput.addEventListener('input', function () {
+      const pw = this.value;
+      const strengthBar   = document.getElementById('strengthBar');
+      const strengthLabel = document.getElementById('strengthLabel');
+      if (!strengthBar || !strengthLabel) return;
+
+      let score = 0;
+      if (pw.length >= 8)          score++;
+      if (/[A-Z]/.test(pw))        score++;
+      if (/[0-9]/.test(pw))        score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+      const levels = [
+        { pct:  0, cls: '',           label: '' },
+        { pct: 25, cls: 'bg-danger',  label: '<span class="text-danger">Weak</span>' },
+        { pct: 50, cls: 'bg-warning', label: '<span class="text-warning">Fair</span>' },
+        { pct: 75, cls: 'bg-info',    label: '<span class="text-info">Good</span>' },
+        { pct:100, cls: 'bg-success', label: '<span class="text-success">Strong</span>' },
+      ];
+      const lvl = levels[score];
+      strengthBar.style.width = lvl.pct + '%';
+      strengthBar.className   = 'progress-bar ' + lvl.cls;
+      strengthLabel.innerHTML = lvl.label;
+    });
+  }
+
+  // Run confirmation comparisons
+  if (confirmPw && pwInput && pwMatchMsg) {
+    confirmPw.addEventListener('input', function () {
+      if (this.value && this.value !== pwInput.value) {
+        pwMatchMsg.classList.remove('d-none');
+      } else {
+        pwMatchMsg.classList.add('d-none');
+      }
+    });
+  }
+
+  // 5. TRIGGER POST RE-RENDER RESTORATION
+  if (facultySelect && savedFaculty && savedFaculty !== "") {
+    facultySelect.value = savedFaculty;
+    facultySelect.dispatchEvent(new Event('change'));
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Messages{% endblock %}
+{% block page_title %}Messages{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">Inbox</h5>
+  <a href="{{ url_for('student.send_message') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-pencil-square me-1"></i>Compose
+  </a>
+</div>
+{% if inbox %}
+<div class="card stat-card">
+  <div class="list-group list-group-flush">
+    {% for msg in inbox %}
+    <a href="{{ url_for('student.view_message', message_id=msg.message_id) }}"
+       class="list-group-item list-group-item-action {% if not msg.is_read %}fw-semibold{% endif %}">
+      <div class="d-flex justify-content-between">
+        <span><i class="bi bi-person-circle me-2"></i>{{ msg.sender.full_name }}</span>
+        <span class="text-muted small">{{ msg.sent_at.strftime('%d %b %Y') if msg.sent_at else '' }}</span>
+      </div>
+      <div class="small text-muted mt-1">
+        {% if msg.subject %}<strong>{{ msg.subject }}</strong> — {% endif %}
+        {{ msg.message_body[:80] }}…
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">Your inbox is empty.</div>
+{% endif %}
+{% endblock %}
