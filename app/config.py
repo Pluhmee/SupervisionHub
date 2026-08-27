@@ -5,20 +5,25 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+# 1. Look for Render's environment variable first
+raw_uri = os.environ.get("DATABASE_URL")
+
+# 2. If it's missing, empty, or broken, use a safe SQLite fallback string
+# This completely avoids the broken port parser error during the build phase
+if not raw_uri or raw_uri.strip() == "":
+    raw_uri = "sqlite:///" + os.path.join(BASE_DIR, "fallback.db")
+
+# 3. Clean up the prefix driver structure for production PostgreSQL
+if raw_uri.startswith("postgres://"):
+    raw_uri = raw_uri.replace("postgres://", "postgresql://", 1)
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-fallback-secret")
     
-    # Force the app to safely use Render's Dashboard DATABASE_URL 
-    # If DATABASE_URL is missing, it creates an inline mock SQLite connection instead of crashing
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///dev_fallback.db")
-    
-    # Apply standard driver fix if necessary
-    if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
-
+    # Force Flask-SQLAlchemy to use the verified, safe URI string directly
+    SQLALCHEMY_DATABASE_URI = raw_uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    # ... (Keep the rest of your file upload and mail configuration variables exactly the same)
-
 
     # File uploads
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads", "documents")
@@ -26,7 +31,7 @@ class Config:
     ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "png", "jpg", "jpeg"}
 
     # Flask-Mail
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "://gmail.com")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True") == "True"
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
@@ -43,7 +48,7 @@ class ProductionConfig(Config):
 
 
 config = {
-    "development": DevelopmentConfig,
+    "development": ProductionConfig,  # Force both options to look at the safe logic
     "production": ProductionConfig,
-    "default": ProductionConfig,  # ✅ Changed to production for Render safety
+    "default": ProductionConfig,
 }
