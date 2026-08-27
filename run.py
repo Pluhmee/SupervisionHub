@@ -1,19 +1,15 @@
 import os
 from app import create_app
 
-# Force 'production' if running on Render, otherwise look at FLASK_ENV
-if os.environ.get("RENDER"):
-    env_profile = "production"
-    
-    # Absolute Fail-Safe: If Render's Dashboard value is missing or misnamed,
-    # Inject a working hardcoded database connection right here so it CANNOT crash.
-    if not os.environ.get("DATABASE_URL"):
-        os.environ["DATABASE_URL"] = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
-else:
-    env_profile = os.environ.get("FLASK_ENV", "development")
+# Debug print statements that will show up directly in your Render logs
+db_env_var = os.environ.get("DATABASE_URL", "NOT_FOUND")
+print("=== RENDER DATABASE_URL DIAGNOSTIC ===")
+print(f"Variable exists: {db_env_var != 'NOT_FOUND'}")
+print(f"String length: {len(db_env_var)}")
+print(f"Starts with postgresql: {db_env_var.startswith('postgresql')}")
+print("=======================================")
 
-# Initialize Flask
-app = create_app(env_profile)
+app = create_app("production" if os.environ.get("RENDER") else os.environ.get("FLASK_ENV", "development"))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
