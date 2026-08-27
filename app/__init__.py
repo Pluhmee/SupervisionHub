@@ -1,22 +1,35 @@
 import os
 from flask import Flask
-from app.config import config
 from app.extensions import db, migrate, bcrypt, login_manager, mail
 
 
 def create_app(config_name: str = "default") -> Flask:
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
 
-    # 🚨 HARD OVERRIDE FOR RENDER
-    # This ignores all config files and dashboard variables completely.
-    # It injects the working 141-character URL with an explicit port.
+    # 1. 🚨 IMMEDIATE ABSOLUTE OVERRIDE FOR RENDER 🚨
+    # We define the database string here before any config objects run.
+    # This leaves zero opportunity for your app to pull an empty dashboard string.
     if os.environ.get("RENDER"):
         app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
+        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "prod-fallback-secret-112233")
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        
+        # Base folder structural configurations
+        BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+        app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads", "documents")
+        app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+        
+        # Email settings parameters
+        app.config["MAIL_SERVER"] = "://gmail.com"
+        app.config["MAIL_PORT"] = 587
+        app.config["MAIL_USE_TLS"] = True
+        app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+        app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+        app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER")
     else:
-        # Local development string (stays untouched)
-        if not app.config.get("SQLALCHEMY_DATABASE_URI"):
-            app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:money%40123@localhost:5432/supervision_hub_db"
+        # 2. Local fallback configuration for your local computer
+        from app.config import config
+        app.config.from_object(config[config_name])
 
     # Ensure upload directory exists
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
