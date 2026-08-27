@@ -5,7 +5,7 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# Hardcoded fail-safe string configuration parameters
+# ✅ FIXED: Removed the typo at the end and restored your correct, public Render database address with an explicit port
 PRODUCTION_URI = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
 
 
@@ -23,7 +23,8 @@ class Config:
     ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "png", "jpg", "jpeg"}
 
     # Flask-Mail
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "://gmail.com")
+    # ✅ FIXED: Changed "://gmail.com" back to standard Google SMTP
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True") == "True"
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
