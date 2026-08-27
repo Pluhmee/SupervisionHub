@@ -15,7 +15,7 @@ def create_app(config_name: str = "default") -> Flask:
 
     # ✅ FIXED HARD OVERRIDE: Replaced the broken "://render.com" string with the complete address path
     correct_uri = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
-    
+
     app.config["SQLALCHEMY_DATABASE_URI"] = correct_uri
     
     print("=== CRITICAL RENDER APP ENGINE CONFIG CHECK ===")
