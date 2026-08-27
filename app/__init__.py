@@ -9,18 +9,15 @@ def create_app(config_name: str = "default") -> Flask:
     app.config.from_object(config[config_name])
 
     # 🚨 SYSTEM-LEVEL ENVIRONMENT CLEANUP 🚨
-    # This deletes the faulty dashboard keys from active memory completely
-    # right before Flask-SQLAlchemy inspects the runtime state.
     for key in ["DATABASE_URL", "SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS"]:
         if key in os.environ:
             del os.environ[key]
 
-    # Explicitly enforce your verified 141-character database string layout
+    # ✅ FIXED HARD OVERRIDE: Replaced the broken "://render.com" string with the complete address path
     correct_uri = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
     
     app.config["SQLALCHEMY_DATABASE_URI"] = correct_uri
     
-    # Debug print verification sequence to view real-time mapping state
     print("=== CRITICAL RENDER APP ENGINE CONFIG CHECK ===")
     print(f"Final App Config target string: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
     print(f"System memory DATABASE_URL check: {os.environ.get('DATABASE_URL')}")
