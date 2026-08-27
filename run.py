@@ -1,14 +1,17 @@
 import os
 import sys
 
-# 🚨 PURGE THE CORRUPTED ENVIRONMENT VARIABLE 🚨
-# This stops Flask-SQLAlchemy from checking the dashboard value behind your back.
-if "DATABASE_URL" in os.environ:
-    del os.environ["DATABASE_URL"]
+# 🚨 SYSTEM LEVEL SCRUBBER 🚨
+# This deletes the faulty dashboard keys from the server's brain completely 
+# before any libraries attempt to inspect or validate the environment.
+for key in ["DATABASE_URL", "SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS"]:
+    if key in os.environ:
+        del os.environ[key]
 
-# Force the working database string explicitly into the runtime configuration dictionary
-os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
+# Manually push the clean 141-character URL with explicit port directly into the environment matrix
+os.environ["DATABASE_URL"] = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
 
+# Now safely load your application code
 from app import create_app
 
 app = create_app("production" if os.environ.get("RENDER") else os.environ.get("FLASK_ENV", "development"))
