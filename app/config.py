@@ -5,22 +5,16 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# FORCEFULLY hardcode the working 141-character URL to bypass the Render Blueprint bug
+# Hardcoded fail-safe string configuration parameters
 PRODUCTION_URI = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
+
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-fallback-secret")
-    
-    # If running on Render, force-inject the correct URI string directly
-    if os.environ.get("RENDER"):
-        SQLALCHEMY_DATABASE_URI = PRODUCTION_URI
-    else:
-        # Local development fallback
-        SQLALCHEMY_DATABASE_URI = os.environ.get(
-            "DATABASE_URL", 
-            "postgresql://postgres:money%40123@localhost:5432/supervision_hub_db"
-        )
-        
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "DATABASE_URL", 
+        "postgresql://postgres:money%40123@localhost:5432/supervision_hub_db"
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # File uploads
@@ -43,10 +37,12 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    # 🚨 FORCED OVERRIDE: Overwrite the inherited Config property explicitly
+    SQLALCHEMY_DATABASE_URI = PRODUCTION_URI
 
 
 config = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    "default": ProductionConfig,
+    "default": ProductionConfig, # Force production to handle the build commands
 }
