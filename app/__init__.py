@@ -8,6 +8,16 @@ def create_app(config_name: str = "default") -> Flask:
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
+    # 🚨 HARD OVERRIDE FOR RENDER
+    # This ignores all config files and dashboard variables completely.
+    # It injects the working 141-character URL with an explicit port.
+    if os.environ.get("RENDER"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
+    else:
+        # Local development string (stays untouched)
+        if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+            app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:money%40123@localhost:5432/supervision_hub_db"
+
     # Ensure upload directory exists
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
