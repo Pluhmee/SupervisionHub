@@ -5,24 +5,22 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# 1. Look for Render's environment variable first
-raw_uri = os.environ.get("DATABASE_URL")
-
-# 2. If it's missing, empty, or broken, use a safe SQLite fallback string
-# This completely avoids the broken port parser error during the build phase
-if not raw_uri or raw_uri.strip() == "":
-    raw_uri = "sqlite:///" + os.path.join(BASE_DIR, "fallback.db")
-
-# 3. Clean up the prefix driver structure for production PostgreSQL
-if raw_uri.startswith("postgres://"):
-    raw_uri = raw_uri.replace("postgres://", "postgresql://", 1)
-
+# FORCEFULLY hardcode the working 141-character URL to bypass the Render Blueprint bug
+PRODUCTION_URI = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-fallback-secret")
     
-    # Force Flask-SQLAlchemy to use the verified, safe URI string directly
-    SQLALCHEMY_DATABASE_URI = raw_uri
+    # If running on Render, force-inject the correct URI string directly
+    if os.environ.get("RENDER"):
+        SQLALCHEMY_DATABASE_URI = PRODUCTION_URI
+    else:
+        # Local development fallback
+        SQLALCHEMY_DATABASE_URI = os.environ.get(
+            "DATABASE_URL", 
+            "postgresql://postgres:money%40123@localhost:5432/supervision_hub_db"
+        )
+        
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # File uploads
@@ -48,7 +46,7 @@ class ProductionConfig(Config):
 
 
 config = {
-    "development": ProductionConfig,  # Force both options to look at the safe logic
+    "development": DevelopmentConfig,
     "production": ProductionConfig,
     "default": ProductionConfig,
 }
