@@ -1,16 +1,15 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# Pure static string assignment - absolutely no system env checks allowed
-STATIC_PRODUCTION_URL = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
+# Pure static string assignment - zero risk of empty string extraction
+PRODUCTION_URI = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-fallback-secret-key-1122")
+    # Use standard static keys instead of os.environ polling to avoid empty evaluations
+    SECRET_KEY = "supervision-hub-secure-fallback-key-998877"
+    SQLALCHEMY_DATABASE_URI = PRODUCTION_URI
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # File uploads
@@ -22,9 +21,9 @@ class Config:
     MAIL_SERVER = "://gmail.com"
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
-    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
+    MAIL_USERNAME = "fallback@gmail.com"
+    MAIL_PASSWORD = "fallbackpassword"
+    MAIL_DEFAULT_SENDER = "fallback@gmail.com"
 
 
 class DevelopmentConfig(Config):
@@ -34,12 +33,11 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    # 🚨 FORCED STATIC HARD-BIND 🚨
-    SQLALCHEMY_DATABASE_URI = STATIC_PRODUCTION_URL
+    SQLALCHEMY_DATABASE_URI = PRODUCTION_URI
 
 
 config = {
-    "development": DevelopmentConfig,
+    "development": ProductionConfig,
     "production": ProductionConfig,
-    "default": ProductionConfig,  # Force production to be the total system fallback
+    "default": ProductionConfig,  # Force all profiles to hit the correct production URL layout
 }
