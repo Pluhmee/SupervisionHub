@@ -5,27 +5,20 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# 1. Fetch the raw environment string safely
-raw_db_url = os.environ.get("DATABASE_URL", "").strip()
-
-# 2. Strip any accidental wrap-around quote characters if they exist
-if (raw_db_url.startswith("'") and raw_db_url.endswith("'")) or (raw_db_url.startswith('"') and raw_db_url.endswith('"')):
-    raw_db_url = raw_db_url[1:-1].strip()
-
-# 3. Safely handle the prefix or provide a local fallback string
-if raw_db_url:
-    if raw_db_url.startswith("postgres://"):
-        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
-    PRODUCTION_DB_URI = raw_db_url
-else:
-    # Local fallback for development machines
-    PRODUCTION_DB_URI = "postgresql://postgres:money%40123@localhost:5432/supervision_hub_db"
-
-
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-fallback-secret")
-    SQLALCHEMY_DATABASE_URI = PRODUCTION_DB_URI
+    
+    # Force the app to safely use Render's Dashboard DATABASE_URL 
+    # If DATABASE_URL is missing, it creates an inline mock SQLite connection instead of crashing
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///dev_fallback.db")
+    
+    # Apply standard driver fix if necessary
+    if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # ... (Keep the rest of your file upload and mail configuration variables exactly the same)
+
 
     # File uploads
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads", "documents")
