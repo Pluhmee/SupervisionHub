@@ -8,20 +8,24 @@ def create_app(config_name: str = "default") -> Flask:
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # 🚨 SYSTEM-LEVEL ENVIRONMENT CLEANUP 🚨
-    for key in ["DATABASE_URL", "SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS"]:
-        if key in os.environ:
-            del os.environ[key]
+    # ✅ DYNAMIC REPAIR: Read directly from Render Environment Variables
+    # If DATABASE_URL isn't set, it uses the fixed internal host domain fallback
+    fallback_uri = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
+    
+    # Grab the string from your dashboard environment variable or fallback to the fixed layout
+    database_uri = os.environ.get("DATABASE_URL", fallback_uri)
+    
+    # If the URL begins with old 'postgres://', swap it for SQLAlchemy compatibility
+    if database_uri and database_uri.startswith("postgres://"):
+        database_uri = database_uri.replace("postgres://", "postgresql://", 1)
 
-    # ✅ FIXED HARD OVERRIDE: Replaced the broken "://render.com" string with the complete address path
-    correct_uri = "postgresql://supervision_db_1ls7_user:HObRsD6CrI1YvjPzoyPr0gdJgn3jxNul@://render.com"
-
-    app.config["SQLALCHEMY_DATABASE_URI"] = correct_uri
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     
     print("=== CRITICAL RENDER APP ENGINE CONFIG CHECK ===")
     print(f"Final App Config target string: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
     print(f"System memory DATABASE_URL check: {os.environ.get('DATABASE_URL')}")
     print("==============================================")
+
 
     # Ensure upload directory exists
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
